@@ -1,0 +1,15 @@
+{
+    "name": "paul/knight-rpg",
+    "description": "Ein einfaches RPG Browsergame mit ReactPHP und Framework X",
+    "type": "project",
+    "require": {
+        "php": "^8.0",
+        "react/socket": "^1.0",
+        "clue/framework-x": "^0.15"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
