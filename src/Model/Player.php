@@ -80,21 +80,21 @@ class Player {
 				'name' => 'Feuerball',
 				'unlockLevel' => 3,
 				'energyCost' => 35,
-				'damageMultiplier' => 2.2,
+				'damageMultiplier' => 1.5,
 				'description' => 'Ein mächtiger Feuerball, der großen Schaden verursacht.'
 						],
 						'eisstrahl' => [
 						'name' => 'Eisstrahl',
 						'unlockLevel' => 8,
 						'energyCost' => 50,
-						'damageMultiplier' => 2.8,
+						'damageMultiplier' => 2.0,
 						'description' => 'Ein Strahl aus Eis, der den Gegner verlangsamt und schadet.'
 								],
 								'kettenblitz' => [
 								'name' => 'Kettenblitz',
 								'unlockLevel' => 13,
 								'energyCost' => 70,
-								'damageMultiplier' => 3.5,
+								'damageMultiplier' => 2.5,
 								'description' => 'Ein Blitz, der gewaltigen Schaden anrichtet.'
 										]
 										];
@@ -105,21 +105,21 @@ class Player {
 				'name' => 'Gezielter Schuss',
 				'unlockLevel' => 3,
 				'energyCost' => 25,
-				'damageMultiplier' => 1.8,
+				'damageMultiplier' => 1.4,
 				'description' => 'Ein präziser Schuss an eine verwundbare Stelle.'
 						],
 						'mehrfachschuss' => [
 						'name' => 'Mehrfachschuss',
 						'unlockLevel' => 8,
 						'energyCost' => 40,
-						'damageMultiplier' => 2.4,
+						'damageMultiplier' => 1.8,
 						'description' => 'Mehrere Pfeile werden gleichzeitig abgefeuert.'
 								],
 								'explosivpfeil' => [
 								'name' => 'Explosivpfeil',
 								'unlockLevel' => 13,
 								'energyCost' => 55,
-								'damageMultiplier' => 3.2,
+								'damageMultiplier' => 2.2,
 								'description' => 'Ein Pfeil, der bei Aufprall explodiert.'
 										]
 										];
@@ -131,21 +131,21 @@ class Player {
 				'name' => 'Zerschmettern',
 				'unlockLevel' => 3,
 				'energyCost' => 30,
-				'damageMultiplier' => 2.0,
+				'damageMultiplier' => 1.3,
 				'description' => 'Ein mächtiger Schlag, der doppelten Schaden verursacht.'
 						],
 						'sprungangriff' => [
 						'name' => 'Sprungangriff',
 						'unlockLevel' => 8,
 						'energyCost' => 45,
-						'damageMultiplier' => 2.5,
+						'damageMultiplier' => 1.7,
 						'description' => 'Ein Sprung auf den Gegner mit verheerender Wucht.'
 								],
 								'wirbelwind' => [
 								'name' => 'Wirbelwind',
 								'unlockLevel' => 13,
 								'energyCost' => 60,
-								'damageMultiplier' => 3.0,
+								'damageMultiplier' => 2.0,
 								'description' => 'Eine rotierende Attacke, die dreifachen Schaden verursacht.'
 										]
 										];
@@ -241,11 +241,11 @@ class Player {
 		$this->expToNext = $this->level * 100;
 
 		// Stats erhöhen
-		$hpIncrease = rand(15, 25);
+		$hpIncrease = rand(5, 15);
 		$this->maxHp += $hpIncrease;
 		$this->hp = $this->maxHp; // Vollheilung beim Level-Up
-		$this->damage += rand(3, 7);
-		$this->defense += rand(2, 4);
+		$this->damage += rand(2, 5);
+		$this->defense += rand(1, 2);
 
 		// Energy beim Level-Up erhöhen
 		$energyIncrease = rand(5, 10);

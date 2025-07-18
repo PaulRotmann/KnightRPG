@@ -17,7 +17,7 @@ class GameController
 		switch ($action) {
 			case 'select_class':
 				$name = $data['name'] ?? 'Ritter';
-				$playerClass = $data['class'] ?? 'Krieger';
+				$playerClass = $data['class'] ?? 'Ritter';
 				$game->createPlayer($name, $playerClass);
 				break;
 			case 'fight':
