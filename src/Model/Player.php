@@ -34,8 +34,8 @@ class Player {
 				$this->maxEnergy = 150;
 				break;
 			case "Schütze":
-				$this->hp = 90;
-				$this->maxHp = 90;
+				$this->hp = 100;
+				$this->maxHp = 100;
 				$this->damage = 18;
 				$this->defense = 4;
 				$this->energy = 120;
@@ -43,8 +43,8 @@ class Player {
 				break;
 			case "Krieger":
 			default:
-				$this->hp = 100;
-				$this->maxHp = 100;
+				$this->hp = 120;
+				$this->maxHp = 120;
 				$this->damage = 15;
 				$this->defense = 5;
 				$this->energy = 100;
@@ -88,7 +88,7 @@ class Player {
 						'unlockLevel' => 8,
 						'energyCost' => 50,
 						'damageMultiplier' => 2.0,
-						'description' => 'Ein Strahl aus Eis, der den Gegner verlangsamt und schadet.'
+						'description' => 'Ein Strahl aus Eis, der dem Gegner schadet.'
 								],
 								'kettenblitz' => [
 								'name' => 'Kettenblitz',
@@ -132,7 +132,7 @@ class Player {
 				'unlockLevel' => 3,
 				'energyCost' => 30,
 				'damageMultiplier' => 1.3,
-				'description' => 'Ein mächtiger Schlag, der doppelten Schaden verursacht.'
+				'description' => 'Ein mächtiger Schlag, der erhöhten Schaden verursacht.'
 						],
 						'sprungangriff' => [
 						'name' => 'Sprungangriff',
@@ -146,7 +146,7 @@ class Player {
 								'unlockLevel' => 13,
 								'energyCost' => 60,
 								'damageMultiplier' => 2.0,
-								'description' => 'Eine rotierende Attacke, die dreifachen Schaden verursacht.'
+								'description' => 'Eine rotierende Attacke, die zweifachen Schaden verursacht.'
 										]
 										];
 				break;
