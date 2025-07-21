@@ -17,6 +17,8 @@ class Player {
 	public $maxEnergy;
 	public $skills;
 	public $playerClass;
+	public $dodgeChance;
+	public $blockChance;
 
 	public function __construct($name = "Ritter", $playerClass = "Krieger") {
 		$this->name = $name;
@@ -32,6 +34,8 @@ class Player {
 				$this->defense = 3;
 				$this->energy = 150;
 				$this->maxEnergy = 150;
+				$this->dodgeChance = 5;
+				$this->blockChance = 5;
 				break;
 			case "Schütze":
 				$this->hp = 100;
@@ -40,6 +44,8 @@ class Player {
 				$this->defense = 4;
 				$this->energy = 120;
 				$this->maxEnergy = 120;
+				$this->dodgeChance = 10;
+				$this->blockChance = 3;
 				break;
 			case "Krieger":
 			default:
@@ -49,6 +55,8 @@ class Player {
 				$this->defense = 5;
 				$this->energy = 100;
 				$this->maxEnergy = 100;
+				$this->dodgeChance = 3;
+				$this->blockChance = 10;
 				break;
 		}
 
@@ -151,6 +159,21 @@ class Player {
 										];
 				break;
 		}
+	}
+
+	public function getEquipmentDodgeBonus() {
+		$bonus = 0;
+		foreach ($this->equipment as $item) {
+			if ($item && isset($item['dodge'])) $bonus += $item['dodge'];
+		}
+		return $bonus;
+	}
+	public function getEquipmentBlockBonus() {
+		$bonus = 0;
+		foreach ($this->equipment as $item) {
+			if ($item && isset($item['block'])) $bonus += $item['block'];
+		}
+		return $bonus;
 	}
 
 	public function attack($enemy) {

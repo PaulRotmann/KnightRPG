@@ -222,6 +222,11 @@ function renderCombat($game) {
 			. renderAvatar('enemy', $enemy->name, $enemy->hp, $enemy->maxHp, null, null, $game->lastPlayerDmg)
 			. '</div>';
 
+			$html .= '<div class="enemy-stats" style="text-align:center;margin-bottom:10px;">
+    		<strong>Monster: ' . $enemy->name . '</strong> |
+    		<strong>Ausweichen:</strong> ' . $enemy->dodgeChance . '% |
+    		<strong>Parieren:</strong> ' . $enemy->blockChance . '%</div>';
+
 			$html .= '<div class="combat-log">';
 			foreach ($game->combatLog as $log) {
 				$html .= '<div>' . $log . '</div>';
@@ -416,21 +421,32 @@ function renderGame($game) {
 function renderPlayerStats($player) {
 	if ($player === null) {
 		return '<div class="player-stats">
-            <h2>Kein Spieler gefunden</h2>
-            <p>Wähle eine Klasse, um das Spiel zu beginnen.</p>
-        </div>';
+                    <h2>Kein Spieler gefunden</h2>
+                    <p>Wähle eine Klasse, um das Spiel zu beginnen.</p>
+                </div>';
 	}
 
 	$hpBar = ($player->hp / $player->maxHp) * 100;
 	$expBar = ($player->exp / $player->expToNext) * 100;
 	$energyBar = ($player->energy / $player->maxEnergy) * 100;
 
+	// Item-Bonus abfragen, falls Methoden vorhanden:
+	$dodge = $player->dodgeChance;
+	$block = $player->blockChance;
+	if (method_exists($player, 'getEquipmentDodgeBonus')) {
+		$dodge += $player->getEquipmentDodgeBonus();
+	}
+	if (method_exists($player, 'getEquipmentBlockBonus')) {
+		$block += $player->getEquipmentBlockBonus();
+	}
+	// HP, Energie und EXP Balken in Prozent
 	return '<div class="player-stats">
-        <h2>' . $player->name . ' (Level ' . $player->level . ')</h2>
-        <div>HP: ' . $player->hp . '/' . $player->maxHp . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $hpBar . '%; height: 100%; background: #4CAF50; border-radius: 10px;"></div></div></div>
-        <div>Energie: ' . $player->energy . '/' . $player->maxEnergy . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $energyBar . '%; height: 100%; background: #FFC107; border-radius: 10px;"></div></div></div>
-        <div>EXP: ' . $player->exp . '/' . $player->expToNext . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $expBar . '%; height: 100%; background: #2196F3; border-radius: 10px;"></div></div></div>
-        <div>Schaden: ' . ($player->damage + $player->getEquipmentDamageBonus()) . ' | Verteidigung: ' . ($player->defense + $player->getEquipmentDefenseBonus()) . '</div>
-        <div>Gold: ' . $player->gold . '</div>
-    </div>';
+            <h2>' . $player->name . ' (Level ' . $player->level . ')</h2>
+            <div>HP: ' . $player->hp . '/' . $player->maxHp . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $hpBar . '%; height: 100%; background: #4CAF50; border-radius: 10px;"></div></div></div>
+            <div>Energie: ' . $player->energy . '/' . $player->maxEnergy . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $energyBar . '%; height: 100%; background: #FFC107; border-radius: 10px;"></div></div></div>
+            <div>EXP: ' . $player->exp . '/' . $player->expToNext . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $expBar . '%; height: 100%; background: #2196F3; border-radius: 10px;"></div></div></div>
+            <div>Schaden: ' . ($player->damage + $player->getEquipmentDamageBonus()) . ' | Verteidigung: ' . ($player->defense + $player->getEquipmentDefenseBonus()) . '</div>
+            <div><strong>Ausweichen:</strong> ' . $dodge . '% | <strong>Parieren:</strong> ' . $block . '%</div>
+            <div>Gold: ' . $player->gold . '</div>
+        </div>';
 }

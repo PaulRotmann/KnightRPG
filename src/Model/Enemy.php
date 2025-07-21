@@ -9,6 +9,8 @@ class Enemy {
 	public $damage;
 	public $expReward;
 	public $goldReward;
+	public $dodgeChance; // % Wahrscheinlichkeit auszuweichen
+	public $blockChance; // % Wahrscheinlichkeit zu parieren
 
 	public function __construct($name, $hp, $damage, $expReward, $goldReward) {
 		$this->name = $name;
@@ -17,6 +19,8 @@ class Enemy {
 		$this->damage = $damage;
 		$this->expReward = $expReward;
 		$this->goldReward = $goldReward;
+		$this->dodgeChance = $dodgeChance;
+		$this->blockChance = $blockChance;
 	}
 
 	public function attack($player) {

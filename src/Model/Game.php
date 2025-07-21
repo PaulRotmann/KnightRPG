@@ -31,18 +31,18 @@ class Game {
 
 	public function getEnemyTypes() {
 		return [
-				'Wolf' => ['hp' => [25, 35], 'damage' => [4, 8], 'exp' => [10, 20], 'gold' => [3, 10]],
-				'Goblin' => ['hp' => [35, 50], 'damage' => [5, 10], 'exp' => [15, 25], 'gold' => [5, 15]],
-				'Skelett' => ['hp' => [50, 100], 'damage' => [8, 15], 'exp' => [20, 35], 'gold' => [8, 20]],
-				'Zombie' => ['hp' => [100, 120], 'damage' => [10, 18], 'exp' => [18, 30], 'gold' => [10, 25]],
-				'Bandit' => ['hp' => [120, 150], 'damage' => [10, 20], 'exp' => [25, 45], 'gold' => [10, 30]],
-				'Mantis' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25]],
-				'Hexe' => ['hp' => [180, 200], 'damage' => [12, 22], 'exp' => [35, 55], 'gold' => [12, 35]],
-				'Golem' => ['hp' => [200, 230], 'damage' => [15, 28], 'exp' => [40, 60], 'gold' => [18, 45]],
-				'Geist' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50]],
-				'Troll' => ['hp' => [250, 300], 'damage' => [20, 35], 'exp' => [60, 90], 'gold' => [30, 70]],
-				'Medusa' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100]],
-				'Drache' => ['hp' => [500, 1000], 'damage' => [50, 80], 'exp' => [100, 150], 'gold' => [70, 120]]
+				'Wolf' => ['hp' => [25, 35], 'damage' => [4, 8], 'exp' => [10, 20], 'gold' => [3, 10], 'dodge' => 10, 'block' => 5],
+				'Goblin' => ['hp' => [35, 50], 'damage' => [5, 10], 'exp' => [15, 25], 'gold' => [5, 15], 'dodge' => 15, 'block' => 10],
+				'Skelett' => ['hp' => [50, 100], 'damage' => [8, 15], 'exp' => [20, 35], 'gold' => [8, 20], 'dodge' => 5, 'block' => 15],
+				'Zombie' => ['hp' => [100, 120], 'damage' => [10, 18], 'exp' => [18, 30], 'gold' => [10, 25] , 'dodge' => 5, 'block' => 10],
+				'Bandit' => ['hp' => [120, 150], 'damage' => [10, 20], 'exp' => [25, 45], 'gold' => [10, 30] , 'dodge' => 10, 'block' => 15],
+				'Mantis' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25], 'dodge' => 15, 'block' => 10],
+				'Hexe' => ['hp' => [180, 200], 'damage' => [12, 22], 'exp' => [35, 55], 'gold' => [12, 35] , 'dodge' => 10, 'block' => 20],
+				'Golem' => ['hp' => [200, 230], 'damage' => [15, 28], 'exp' => [40, 60], 'gold' => [18, 45], 'dodge' => 5, 'block' => 25],
+				'Geist' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50], 'dodge' => 20, 'block' => 15],
+				'Troll' => ['hp' => [250, 300], 'damage' => [20, 35], 'exp' => [60, 90], 'gold' => [30, 70], 'dodge' => 10, 'block' => 20],
+				'Medusa' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100] , 'dodge' => 15, 'block' => 25],
+				'Drache' => ['hp' => [500, 1000], 'damage' => [50, 80], 'exp' => [100, 150], 'gold' => [70, 120] , 'dodge' => 20, 'block' => 30],
 		];
 	}
 
@@ -57,8 +57,10 @@ class Game {
 		$damage = rand($stats['damage'][0], $stats['damage'][1]);
 		$exp = rand($stats['exp'][0], $stats['exp'][1]);
 		$gold = rand($stats['gold'][0], $stats['gold'][1]);
+		$dodge = $stats['dodge'] ?? 0;
+		$block = $stats['block'] ?? 0;
 
-		$this->currentEnemy = new Enemy($enemyType, $hp, $damage, $exp, $gold);
+		$this->currentEnemy = new Enemy($enemyType, $hp, $damage, $exp, $gold, $dodge, $block);
 		$this->gameState = 'combat';
 		$this->combatLog = [];
 		$this->combatLog[] = "Du trittst gegen einen {$enemyType} an! (HP: {$hp}, Schaden: {$damage})";
@@ -67,8 +69,35 @@ class Game {
 
 	public function playerAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
+			// ... Vor Schaden ...
+			$dodgeRoll = rand(1, 100);
+			if ($this->currentEnemy->dodgeChance > 0 && $dodgeRoll <= $this->currentEnemy->dodgeChance) {
+				$this->combatLog[] = "Der {$this->currentEnemy->name} weicht deinem Angriff aus!";
+				$this->lastPlayerDmg = 0;
+				// Nach Ausweichen: evtl. Enemy-Turn direkt? Oder Zug endet einfach.
+				$this->enemyAttack();
+
+				// Regeneriere etwas Energie nach dem Zug
+				$regenAmount = $this->player->regenerateEnergy();
+				$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
+				return;
+			}
+
+			$blockRoll = rand(1, 100);
+			if ($this->currentEnemy->blockChance > 0 && $blockRoll <= $this->currentEnemy->blockChance) {
+				$this->combatLog[] = "Der {$this->currentEnemy->name} pariert deinen Angriff!";
+				$this->lastPlayerDmg = 0;
+				$this->enemyAttack();
+
+				// Regeneriere etwas Energie nach dem Zug
+				$regenAmount = $this->player->regenerateEnergy();
+				$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
+				return;
+			}
+
+			// Nur falls nicht gedodged/geblockt:
 			$damage = $this->player->attack($this->currentEnemy);
-			$this->lastPlayerDmg = $damage; // Speichere den Schaden des Spielers
+			$this->lastPlayerDmg = $damage;
 			$this->combatLog[] = "Du greifst den {$this->currentEnemy->name} an und machst {$damage} Schaden!";
 
 			if (!$this->currentEnemy->isAlive()) {
@@ -95,16 +124,44 @@ class Game {
 			return;
 		}
 
-		$this->lastPlayerDmg = $result['damage']; // Speichere den Schaden des Spielers
+		// Check if enemy can dodge the skill attack
+		$dodgeRoll = rand(1, 100);
+		if ($this->currentEnemy->dodgeChance > 0 && $dodgeRoll <= $this->currentEnemy->dodgeChance) {
+			$this->combatLog[] = "Der {$this->currentEnemy->name} weicht deinem {$result['skillName']} aus!";
+			$this->lastPlayerDmg = 0;
+			// Enemy attacks after the dodge
+			$this->enemyAttack();
+
+			// Regenerate some energy after turn
+			$regenAmount = $this->player->regenerateEnergy();
+			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
+			return;
+		}
+
+		// Check if enemy can block the skill attack
+		$blockRoll = rand(1, 100);
+		if ($this->currentEnemy->blockChance > 0 && $blockRoll <= $this->currentEnemy->blockChance) {
+			$this->combatLog[] = "Der {$this->currentEnemy->name} pariert dein {$result['skillName']}!";
+			$this->lastPlayerDmg = 0;
+			$this->enemyAttack();
+
+			// Regenerate some energy after turn
+			$regenAmount = $this->player->regenerateEnergy();
+			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
+			return;
+		}
+
+		// If no dodge or block, apply skill damage
+		$this->lastPlayerDmg = $result['damage']; // Store player damage
 		$this->combatLog[] = "Du setzt " . $result['skillName'] . " ein und fügst " . $result['damage'] . " Schaden zu!";
 
 		if (!$this->currentEnemy->isAlive()) {
 			$this->endCombat();
 		} else {
-			// Gegner greift zurück an
+			// Enemy counter-attacks
 			$this->enemyAttack();
 
-			// Regeneriere etwas Energie nach dem Zug
+			// Regenerate some energy after turn
 			$regenAmount = $this->player->regenerateEnergy();
 			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
 		}
@@ -112,8 +169,33 @@ class Game {
 
 	public function enemyAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
+			// Ausweichen
+			$dodgeRoll = rand(1, 100);
+			$dodgeChance = $this->player->dodgeChance;
+			if (method_exists($this->player, 'getEquipmentDodgeBonus')) {
+				$dodgeChance += $this->player->getEquipmentDodgeBonus();
+			}
+			if ($dodgeChance > 0 && $dodgeRoll <= $dodgeChance){
+				$this->combatLog[] = "Du weichst dem Angriff des {$this->currentEnemy->name} aus!";
+				$this->lastEnemyDmg = 0;
+				return;
+			}
+
+			// Parieren
+			$blockChance = $this->player->blockChance;
+			if (method_exists($this->player, 'getEquipmentBlockBonus')) {
+				$blockChance += $this->player->getEquipmentBlockBonus();
+			}
+			$blockRoll = rand(1, 100);
+			if ($blockChance > 0 && $blockRoll <= $blockChance) {
+				$this->combatLog[] = "Du parierst den Angriff des {$this->currentEnemy->name}!";
+				$this->lastEnemyDmg = 0;
+				return;
+			}
+
+			// Schaden
 			$damage = $this->currentEnemy->attack($this->player);
-			$this->lastEnemyDmg = $damage; // Speichere den Schaden des Gegners
+			$this->lastEnemyDmg = $damage;
 			$this->combatLog[] = "Der {$this->currentEnemy->name} greift dich an und macht {$damage} Schaden!";
 
 			if ($this->player->hp <= 0) {
@@ -157,24 +239,24 @@ class Game {
 	public function getShopItems() {
 		$baseItems = [
 				'helmet' => [
-						'Eisenhelm' => ['price' => 50, 'defense' => 5],
+						'Lederhelm' => ['price' => 50, 'defense' => 5, 'dodge' => 2],
 						'Stahlhelm' => ['price' => 150, 'defense' => 12],
-						'Ritterhelm' => ['price' => 300, 'defense' => 20]
+						'Ritterhelm' => ['price' => 300, 'defense' => 20 , 'block' => 5]
 				],
 				'armor' => [
-						'Lederrüstung' => ['price' => 100, 'defense' => 10],
+						'Lederrüstung' => ['price' => 100, 'defense' => 10, 'dodge' => 5],
 						'Kettenhemd' => ['price' => 250, 'defense' => 20],
-						'Plattenrüstung' => ['price' => 500, 'defense' => 35]
+						'Plattenrüstung' => ['price' => 500, 'defense' => 35, 'block' => 10]
 				],
 				'gloves' => [
-						'Lederhandschuhe' => ['price' => 30, 'defense' => 3],
+						'Lederhandschuhe' => ['price' => 30, 'defense' => 3, 'dodge' => 2],
 						'Eisenhandschuhe' => ['price' => 80, 'defense' => 7],
-						'Stahlhandschuhe' => ['price' => 150, 'defense' => 12]
+						'Stahlhandschuhe' => ['price' => 150, 'defense' => 12, 'block' => 3]
 				],
 				'boots' => [
-						'Lederstiefel' => ['price' => 40, 'defense' => 4],
+						'Lederstiefel' => ['price' => 40, 'defense' => 4, 'dodge' => 3],
 						'Eisenstiefel' => ['price' => 90, 'defense' => 8],
-						'Stahlstiefel' => ['price' => 180, 'defense' => 15]
+						'Stahlstiefel' => ['price' => 180, 'defense' => 15, 'block' => 5]
 				],
 				'ring' => [
 						'Kraftring' => ['price' => 200, 'damage' => 8],
