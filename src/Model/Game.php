@@ -10,6 +10,8 @@ class Game {
 	public $currentEnemy;
 	public $gameState; // 'home', 'combat', 'shop', 'gameover', 'monster_selection'
 	public $combatLog;
+	public $lastPlayerDmg = null;
+	public $lastEnemyDmg = null;
 
 	public function __construct() {
 		$this->player = null; // Start with no player
@@ -22,6 +24,8 @@ class Game {
 	public function createPlayer($name, $playerClass) {
 		$this->player = new Player($name, $playerClass);
 		$this->gameState = 'home';
+		$this->lastPlayerDmg = null;
+		$this->lastEnemyDmg = null;
 		return true;
 	}
 
@@ -32,12 +36,12 @@ class Game {
 				'Skelett' => ['hp' => [50, 100], 'damage' => [8, 15], 'exp' => [20, 35], 'gold' => [8, 20]],
 				'Zombie' => ['hp' => [100, 120], 'damage' => [10, 18], 'exp' => [18, 30], 'gold' => [10, 25]],
 				'Bandit' => ['hp' => [120, 150], 'damage' => [10, 20], 'exp' => [25, 45], 'gold' => [10, 30]],
-				'Orc' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25]],
+				'Mantis' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25]],
 				'Hexe' => ['hp' => [180, 200], 'damage' => [12, 22], 'exp' => [35, 55], 'gold' => [12, 35]],
 				'Golem' => ['hp' => [200, 230], 'damage' => [15, 28], 'exp' => [40, 60], 'gold' => [18, 45]],
-				'Vampir' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50]],
+				'Geist' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50]],
 				'Troll' => ['hp' => [250, 300], 'damage' => [20, 35], 'exp' => [60, 90], 'gold' => [30, 70]],
-				'Riese' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100]],
+				'Medusa' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100]],
 				'Drache' => ['hp' => [500, 1000], 'damage' => [50, 80], 'exp' => [100, 150], 'gold' => [70, 120]]
 		];
 	}
@@ -64,6 +68,7 @@ class Game {
 	public function playerAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
 			$damage = $this->player->attack($this->currentEnemy);
+			$this->lastPlayerDmg = $damage; // Speichere den Schaden des Spielers
 			$this->combatLog[] = "Du greifst den {$this->currentEnemy->name} an und machst {$damage} Schaden!";
 
 			if (!$this->currentEnemy->isAlive()) {
@@ -90,6 +95,7 @@ class Game {
 			return;
 		}
 
+		$this->lastPlayerDmg = $result['damage']; // Speichere den Schaden des Spielers
 		$this->combatLog[] = "Du setzt " . $result['skillName'] . " ein und fügst " . $result['damage'] . " Schaden zu!";
 
 		if (!$this->currentEnemy->isAlive()) {
@@ -107,6 +113,7 @@ class Game {
 	public function enemyAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
 			$damage = $this->currentEnemy->attack($this->player);
+			$this->lastEnemyDmg = $damage; // Speichere den Schaden des Gegners
 			$this->combatLog[] = "Der {$this->currentEnemy->name} greift dich an und macht {$damage} Schaden!";
 
 			if ($this->player->hp <= 0) {
@@ -143,6 +150,8 @@ class Game {
 
 		$this->gameState = 'home';
 		$this->currentEnemy = null;
+		$this->lastPlayerDmg = null;
+		$this->lastEnemyDmg = null;
 	}
 
 	public function getShopItems() {
@@ -229,5 +238,7 @@ class Game {
 		$this->currentEnemy = null;
 		$this->gameState = 'class_selection';
 		$this->combatLog = [];
+		$this->lastPlayerDmg = null;
+		$this->lastEnemyDmg = null;
 	}
 }

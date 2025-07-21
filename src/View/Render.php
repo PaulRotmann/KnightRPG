@@ -3,38 +3,47 @@
 namespace App\View;
 
 function renderEquipment($player) {
-	if ($player === null) {
-		return ''; // Return empty if no player exists yet
-	}
+	if ($player === null) { return ''; }
+
+	$slotNames = [
+			'helmet' => 'Helm',
+			'armor' => 'Rüstung',
+			'gloves' => 'Handschuhe',
+			'boots' => 'Schuhe',
+			'weapon' => 'Waffe',
+			'ring' => 'Ring',
+			'amulet' => 'Amulett'
+	];
+	$slotIcons = [
+			'helmet' => '⛑️',
+			'armor' => '🦺',
+			'gloves' => '🧤',
+			'boots' => '🥾',
+			'weapon' => '⚔️',
+			'ring' => '💍',
+			'amulet' => '📿'
+	];
 
 	$html = '<div class="equipment">
         <h3>Ausrüstung</h3>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">';
 
 	foreach ($player->equipment as $slot => $item) {
-		$slotNames = [
-				'helmet' => 'Helm',
-				'armor' => 'Rüstung',
-				'gloves' => 'Handschuhe',
-				'boots' => 'Schuhe',
-				'weapon' => 'Waffe',
-				'ring' => 'Ring',
-				'amulet' => 'Amulett'
-		];
-
+		$icon = isset($slotIcons[$slot]) ? $slotIcons[$slot] : '';
 		$itemName = $item ? array_keys($item)[0] : 'Leer';
 		$stats = '';
 		if ($item) {
 			if (isset($item['damage'])) $stats .= ' (+' . $item['damage'] . ' Schaden)';
 			if (isset($item['defense'])) $stats .= ' (+' . $item['defense'] . ' Verteidigung)';
 		}
-
-		$html .= '<div><strong>' . $slotNames[$slot] . ':</strong><br>' . $itemName . $stats . '</div>';
+		$displayName = $item ? $icon . ' ' . $itemName : $icon . ' Leer';
+		$html .= '<div><strong>' . $slotNames[$slot] . ':</strong><br>' . $displayName . $stats . '</div>';
 	}
 
 	$html .= '</div></div>';
 	return $html;
 }
+
 
 function renderClassSelection() {
 	$html = '<div>
@@ -170,91 +179,127 @@ function renderMonsterSelection($game) {
 	return $html;
 }
 
+function renderAvatar($type, $name, $hp, $maxHp, $energy = null, $maxEnergy = null, $lastDmg = null) {
+	$fileSafeName = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $name));
+	$fileSafeName = preg_replace('/[^a-z0-9]/', '', $fileSafeName);
+	$avatarFile = "/assets/avatars/{$fileSafeName}.png";
+	if (!file_exists($_SERVER['DOCUMENT_ROOT'] . $avatarFile)) {
+		$avatarFile = "/assets/avatars/default.png";
+	}
+	$hpPercent = max(0, min(100, round(($hp / $maxHp) * 100)));
+	$energyBar = '';
+	if ($energy !== null && $maxEnergy !== null) {
+		$energyPercent = max(0, min(100, round(($energy / $maxEnergy) * 100)));
+		// Energie-Balken UNTER dem Bild, als Block
+		$energyBar = '<div class="energy-bar" style="width:100px;height:10px;background:#eee;border-radius:6px;box-shadow:0 0 5px #0002;margin:2px auto 0;">
+            <div style="width:'.$energyPercent.'%;height:100%;background:#FFC107;border-radius:6px;"></div>
+        </div>';
+	}
+	$damageNumber = '';
+	if ($lastDmg !== null && $lastDmg > 0) {
+		$damageNumber = '<div class="damage-number" style="position:absolute;top:35px;left:35px;font-size:1.4em;font-weight:bold;color:#f44336;animation:damage-float 1.2s forwards;pointer-events:none;">
+            -'.$lastDmg.'
+        </div>';
+	}
+	// NEU: HP-Balken unter dem Bild, als Block
+	$hpBar = '<div class="hp-bar" style="width:100px;height:10px;background:#eee;border-radius:6px;box-shadow:0 0 5px #0002;margin:8px auto 0;">
+            <div style="width:'.$hpPercent.'%;height:100%;background:#4CAF50;border-radius:6px;"></div>
+        </div>';
+	return '
+    <div class="avatar-'.$type.'" style="position:relative;display:inline-block;width:100px;margin:5px 15px 5px 0;text-align:center;">
+        <img src="'.$avatarFile.'" alt="'.$name.'" style="width:100px;height:100px;border-radius:10px;border:2px solid #888;box-shadow:1px 2px 6px #2222;display:block;margin:0 auto;">
+        '.$damageNumber.'
+        '.$hpBar.'
+        '.$energyBar.'
+    </div>';
+}
+
 function renderCombat($game) {
 	$enemy = $game->currentEnemy;
-	$enemyHpBar = ($enemy->hp / $enemy->maxHp) * 100;
 
-	$html = '<div class="enemy-stats">
-        <h3>Gegner: ' . $enemy->name . '</h3>
-        <div>HP: ' . $enemy->hp . '/' . $enemy->maxHp . ' <div style="width: 200px; height: 20px; background: #ddd; border-radius: 10px; display: inline-block;"><div style="width: ' . $enemyHpBar . '%; height: 100%; background: #f44336; border-radius: 10px;"></div></div></div>
-        <div>Schaden: ' . $enemy->damage . '</div>
-    </div>';
+	$html = '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;margin-bottom:20px;">'
+			. renderAvatar('player', $game->player->playerClass, $game->player->hp, $game->player->maxHp, $game->player->energy, $game->player->maxEnergy, $game->lastEnemyDmg)
+			. renderAvatar('enemy', $enemy->name, $enemy->hp, $enemy->maxHp, null, null, $game->lastPlayerDmg)
+			. '</div>';
 
-	$html .= '<div class="combat-log">';
-	foreach ($game->combatLog as $log) {
-		$html .= '<div>' . $log . '</div>';
-	}
-	$html .= '</div>';
-
-	if ($enemy->isAlive()) {
-		$html .= '<div style="margin-bottom: 15px;">
-			<h3>Aktionen:</h3>
-			<button onclick="gameAction(\'attack\')" style="background-color: #4CAF50;">Angreifen</button>';
-
-		// Fertigkeiten-Buttons hinzufügen wenn verfügbar
-		foreach ($game->player->skills as $key => $skill) {
-			if ($game->player->level >= $skill['unlockLevel']) {
-				$disabled = $game->player->energy < $skill['energyCost'];
-				$buttonStyle = $disabled ?
-				'opacity: 0.5; cursor: not-allowed; background-color: #673AB7;' :
-				'background-color: #673AB7;';
-
-				$html .= '<button
-					onclick="' . (!$disabled ? "gameAction('use_skill', {skillKey: '$key'})" : '') . '"
-					style="' . $buttonStyle . '"
-					title="' . $skill['description'] . ' (Kostet ' . $skill['energyCost'] . ' Energie)">' .
-					$skill['name'] . ' (' . $skill['energyCost'] . ' EP)
-				</button>';
+			$html .= '<div class="combat-log">';
+			foreach ($game->combatLog as $log) {
+				$html .= '<div>' . $log . '</div>';
 			}
-		}
+			$html .= '</div>';
 
-		$html .= '</div>';
-	}
+			if ($enemy->isAlive()) {
+				$html .= '<div style="margin-bottom: 15px;">
+            <h3>Aktionen:</h3>
+            <button onclick="gameAction(\'attack\')" style="background-color: #4CAF50;">Angreifen</button>';
 
-	$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button>';
+				// Fertigkeiten-Buttons hinzufügen wenn verfügbar
+				foreach ($game->player->skills as $key => $skill) {
+					if ($game->player->level >= $skill['unlockLevel']) {
+						$disabled = $game->player->energy < $skill['energyCost'];
+						$buttonStyle = $disabled ?
+						'opacity: 0.5; cursor: not-allowed; background-color: #673AB7;' :
+						'background-color: #673AB7;';
 
-	return $html;
+						$html .= '<button
+                    onclick="' . (!$disabled ? "gameAction('use_skill', {skillKey: '$key'})" : '') . '"
+                    style="' . $buttonStyle . '"
+                    title="' . $skill['description'] . ' (Kostet ' . $skill['energyCost'] . ' Energie)">' .
+                    $skill['name'] . ' (' . $skill['energyCost'] . ' EP)
+                </button>';
+					}
+				}
+
+				$html .= '</div>';
+			}
+
+			$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button>';
+
+			return $html;
 }
 
 function renderShop($game) {
 	$shopItems = $game->getShopItems();
-	$html = '<div>
-        <h2>Shop</h2>
-        <p>Dein Gold: ' . $game->player->gold . '</p>';
+	$slotNames = [
+			'helmet' => 'Helme',
+			'armor' => 'Rüstungen',
+			'gloves' => 'Handschuhe',
+			'boots' => 'Schuhe',
+			'weapon' => 'Waffen',
+			'ring' => 'Ringe',
+			'amulet' => 'Amulette'
+	];
+	$slotIcons = [
+			'helmet' => '⛑️',
+			'armor' => '🦺',
+			'gloves' => '🧤',
+			'boots' => '🥾',
+			'weapon' => '⚔️',
+			'ring' => '💍',
+			'amulet' => '📿'
+	];
+
+	$html = '<div><h2>Shop</h2><p>Dein Gold: ' . $game->player->gold . '</p>';
 
 	foreach ($shopItems as $slot => $items) {
-		$slotNames = [
-				'helmet' => 'Helme',
-				'armor' => 'Rüstungen',
-				'gloves' => 'Handschuhe',
-				'boots' => 'Schuhe',
-				'weapon' => 'Waffen', // Fixed: Changed 'sword' to 'weapon'
-				'ring' => 'Ringe',
-				'amulet' => 'Amulette'
-		];
-
-		$html .= '<h3>' . $slotNames[$slot] . '</h3>';
-
+		$icon = $slotIcons[$slot] ?? '';
+		$html .= '<h3>' . $icon . ' ' . $slotNames[$slot] . '</h3>';
 		foreach ($items as $itemName => $item) {
 			$stats = '';
 			if (isset($item['damage'])) $stats .= ' (+' . $item['damage'] . ' Schaden)';
 			if (isset($item['defense'])) $stats .= ' (+' . $item['defense'] . ' Verteidigung)';
-
 			$canBuy = $game->player->gold >= $item['price'];
 			$buttonStyle = $canBuy ? '' : 'style="opacity: 0.5; cursor: not-allowed;"';
-
-			$html .= '<div class="shop-item">
-                <strong>' . $itemName . '</strong> - ' . $item['price'] . ' Gold' . $stats . '
-                <button ' . $buttonStyle . ' onclick="' . ($canBuy ? 'gameAction(\'buy\', {slot: \'' . $slot . '\', item: \'' . $itemName . '\'})' : '') . '">Kaufen</button>
+			$html .= '<div class="shop-item">'
+					. '<strong>' . $icon . ' ' . $itemName . '</strong> - ' . $item['price'] . ' Gold' . $stats .
+					'<button ' . $buttonStyle . ' onclick="' . ($canBuy ? 'gameAction(\'buy\', {slot: \'' . $slot . '\', item: \'' . $itemName . '\'})' : '') . '">Kaufen</button>
             </div>';
 		}
 	}
-
-	$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button>';
-	$html .= '</div>';
-
+	$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button></div>';
 	return $html;
 }
+
 
 function renderGameOver($game) {
 	$html = '<div style="text-align: center; background: #ffebee; padding: 30px; border-radius: 10px; border: 2px solid #f44336;">
@@ -323,6 +368,22 @@ function renderGame($game) {
         button:hover { background: #45a049; }
         .danger { background: #f44336; }
         .danger:hover { background: #da190b; }
+        .avatar-player, .avatar-enemy { margin: 5px 15px; }
+        .hp-bar, .energy-bar { box-shadow: 0 0 5px #0002; }
+        .damage-number {
+            animation: damage-float 1.2s forwards;
+            pointer-events: none;
+        }
+        @keyframes damage-float {
+            0% {
+                opacity:1; transform:translateY(0) scale(1.1);
+                text-shadow:1px 2px 6px #ca2;
+            }
+            70% { opacity:0.95;}
+            100% {
+                opacity:0; transform:translateY(-32px) scale(1.25);
+            }
+        }
     </style>
 </head>
 <body>

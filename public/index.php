@@ -23,13 +23,26 @@ $game = $_SESSION['game'];
 $app = new App();
 
 // Routes
-$app->get('/', function () use ($game) {
-	return new Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], View\renderGame($game));
+$app->get('/', function(ServerRequestInterface $request) {
+	session_start();
+	if (!isset($_SESSION['game']) || !($_SESSION['game'] instanceof \App\Model\Game)) {
+		$_SESSION['game'] = new Game();
+	}
+	$game = $_SESSION['game'];
+	return new Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], \App\View\renderGame($game));
 });
 
-	$app->post('/action', function (ServerRequestInterface $request) use ($game) {
-		return GameController::handleAction($request, $game);
+	$app->post('/action', function (ServerRequestInterface $request) {
+		session_start();
+		if (!isset($_SESSION['game']) || !($_SESSION['game'] instanceof \App\Model\Game)) {
+			$_SESSION['game'] = new Game();
+		}
+		$game = $_SESSION['game'];
+		$response = \App\Controller\GameController::handleAction($request, $game);
+		$_SESSION['game'] = $game; // <- immer nachbearbeiten!
+		return $response;
 	});
+
 
 		// Start the app
 		$app->run();
