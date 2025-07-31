@@ -2,6 +2,8 @@
 
 namespace App\Model;
 
+use App\Model\StatusEffect;
+
 class Player {
 	public $name;
 	public $level;
@@ -19,6 +21,8 @@ class Player {
 	public $playerClass;
 	public $dodgeChance;
 	public $blockChance;
+
+	public $statusEffects = [];
 
 	public function __construct($name = "Ritter", $playerClass = "Krieger") {
 		$this->name = $name;
@@ -177,15 +181,38 @@ class Player {
 	}
 
 	public function attack($enemy) {
+		if (!$this->canAct()) {
+			// Spieler ist bewegungsunfähig
+			return 0;
+		}
 		$baseDamage = rand($this->damage - 5, $this->damage + 5);
 		$equipmentBonus = $this->getEquipmentDamageBonus();
 		$totalDamage = $baseDamage + $equipmentBonus;
 
-		$enemy->takeDamage($totalDamage);
-		return $totalDamage;
+		// Krieger/Schütze: Chance auf Bluten bei jedem normalen Angriff
+		if (
+				($this->playerClass === "Schütze" || $this->playerClass === "Krieger")
+				&& rand(1,100) <= 20
+				) {
+					$staerke = round(($this->damage + $this->getEquipmentDamageBonus()) * 0.3);
+					$enemy->addStatusEffect(new \App\Model\StatusEffect('bleed', 3, $staerke));
+					// combatLog musst du hier vom Aufrufer aus verarbeiten!
+				}
+
+				$actualDamage = $enemy->takeDamage($totalDamage);
+				return $actualDamage;
 	}
 
 	public function useSkill($skillKey, $enemy) {
+		if (!$this->canAct()) {
+			// Spieler ist bewegungsunfähig
+			return ['success' => false, 'message' => 'Du kannst jetzt nicht angreifen!'];
+		}
+
+		if (!isset($this->skills[$skillKey])) {
+			return ['success' => false, 'message' => 'Ungültige Fertigkeit!'];
+		}
+
 		$skill = $this->skills[$skillKey];
 
 		if ($this->energy < $skill['energyCost']) {
@@ -194,17 +221,79 @@ class Player {
 
 		$baseDamage = rand($this->damage - 5, $this->damage + 5);
 		$equipmentBonus = $this->getEquipmentDamageBonus();
+
 		$skillDamage = ($baseDamage + $equipmentBonus) * $skill['damageMultiplier'];
 		$totalDamage = round($skillDamage);
 
-		$enemy->takeDamage($totalDamage);
-		$this->energy -= $skill['energyCost'];
+		// --- StatusEffekt-Chancen pro Klasse und Skill ---
+		// Magier-Skills: Status-Effekte!
+		if ($this->playerClass === "Magier") {
+			if ($skillKey === 'feuerball' && rand(1,100) <= 20) {
+				$staerke = round(($this->damage + $this->getEquipmentDamageBonus()) * 0.4);
+				$enemy->addStatusEffect(new \App\Model\StatusEffect('burn', 3, $staerke));
+			}
+			if ($skillKey === 'eisstrahl' && rand(1,100) <= 20) {
+				$enemy->addStatusEffect(new \App\Model\StatusEffect('paralyze', 2));
+			}
+			if ($skillKey === 'kettenblitz' && rand(1,100) <= 20) {
+				$enemy->addStatusEffect(new \App\Model\StatusEffect('stun', 2));
+			}
+		}
+		// Krieger & Schütze: Bluten auch bei Skills
+		if (
+				($this->playerClass === "Schütze" || $this->playerClass === "Krieger")
+				&& rand(1,100) <= 20
+				) {
+					$staerke = round(($this->damage + $this->getEquipmentDamageBonus()) * 0.3);
+					$enemy->addStatusEffect(new \App\Model\StatusEffect('bleed', 3, $staerke));
+				}
 
-		return [
-				'success' => true,
-				'damage' => $totalDamage,
-				'skillName' => $skill['name']
-		];
+				$actualDamage = $enemy->takeDamage($totalDamage);
+				$this->energy -= $skill['energyCost'];
+				return [
+						'success' => true,
+						'damage' => $actualDamage,
+						'skillName' => $skill['name']
+				];
+	}
+
+	// --- STATUS-FUNKTIONEN ---
+	public function addStatusEffect(\App\Model\StatusEffect $effect) {
+		foreach ($this->statusEffects as $existing) {
+			if ($existing->type === $effect->type) {
+				$existing->duration = max($existing->duration, $effect->duration);
+				$existing->strength = max($existing->strength, $effect->strength);
+				return;
+			}
+		}
+		$this->statusEffects[] = $effect;
+	}
+
+	public function processStatusEffects(&$combatLog) {
+		$blocked = false;
+		// Erst restrictive Effekte (Stun/Paralyze) loggen und blockieren
+		foreach ($this->statusEffects as $key => $effect) {
+			if ($effect->type === 'stun' || $effect->type === 'paralyze') {
+				$combatLog[] = "{$this->name} ist " .
+				($effect->type === 'stun' ? "betäubt" : "gelähmt") .
+				" und kann diesen Zug nicht handeln!";
+				$blocked = true;
+			}
+		}
+		// Dann DOT-Schaden (Burn, Bleed)
+		foreach ($this->statusEffects as $key => $effect) {
+			if ($effect->type === 'burn' || $effect->type === 'bleed') {
+				$this->hp = max(0, $this->hp - $effect->strength);
+				$effectName = $effect->type === 'burn' ? "Verbrennung" : "Blutung";
+				$combatLog[] = "{$this->name} erleidet {$effect->strength} Schaden durch {$effectName}!";
+			}
+			$effect->duration--;
+			if ($effect->duration <= 0) {
+				unset($this->statusEffects[$key]);
+			}
+		}
+		$this->statusEffects = array_values($this->statusEffects);
+		return $blocked;
 	}
 
 	public function regenerateEnergy() {
@@ -214,9 +303,21 @@ class Player {
 	}
 
 	public function takeDamage($damage) {
+		// Check for dodge
+		$totalDodgeChance = $this->dodgeChance + $this->getEquipmentDodgeBonus();
+		if (rand(1, 100) <= $totalDodgeChance) {
+			return 0; // Attack dodged
+		}
+
+		// Check for block
+		$totalBlockChance = $this->blockChance + $this->getEquipmentBlockBonus();
+		if (rand(1, 100) <= $totalBlockChance) {
+			$damage = floor($damage / 2); // Block reduces damage
+		}
+
 		$defenseReduction = $this->getEquipmentDefenseBonus();
 		$actualDamage = max(1, $damage - $defenseReduction);
-		$this->hp -= $actualDamage;
+		$this->hp = max(0, $this->hp - $actualDamage); // Prevent negative HP
 		return $actualDamage;
 	}
 
@@ -243,23 +344,29 @@ class Player {
 	public function gainExp($exp) {
 		$this->exp += $exp;
 
-		// Ensure exp is never negative
 		if ($this->exp < 0) {
 			$this->exp = 0;
 		}
 
-		if ($this->exp >= $this->expToNext) {
+		$levelUps = 0;
+		// Sammle die LevelUp-Ergebnisse, wenn benötigt
+		while ($this->exp >= $this->expToNext) {
 			$this->levelUp();
+			$levelUps++;
 		}
+
+		return $levelUps;
 	}
 
 	public function levelUp() {
-		$this->level++;
-
-		// Fix: Ensure exp is never negative
-		if ($this->exp < 0) {
-			$this->exp = 0;
+		// Ziehe benötigte Erfahrung für aktuelles Level ab - vorher prüfen, dass exp groß genug
+		if ($this->exp < $this->expToNext) {
+			return false; // Nicht genug EXP => kein LevelUp
 		}
+
+		$this->exp -= $this->expToNext;
+
+		$this->level++;
 
 		$this->expToNext = $this->level * 100;
 
@@ -270,10 +377,14 @@ class Player {
 		$this->damage += rand(2, 5);
 		$this->defense += rand(1, 2);
 
-		// Energy beim Level-Up erhöhen
 		$energyIncrease = rand(5, 10);
 		$this->maxEnergy += $energyIncrease;
 		$this->energy = $this->maxEnergy; // Energie auffüllen beim Level-Up
+
+		// Negative EXP vermeiden (sollte nicht eintreten)
+		if ($this->exp < 0) {
+			$this->exp = 0;
+		}
 
 		return [
 				'hpIncrease' => $hpIncrease,
@@ -302,6 +413,27 @@ class Player {
 	}
 
 	public function equipItem($item, $slot) {
+		// Validate slot exists
+		if (!isset($this->equipment[$slot])) {
+			return false;
+		}
+
+		// Could add more validation here (item type matches slot, etc.)
 		$this->equipment[$slot] = $item;
+		return true;
+	}
+
+	public function hasStatus($type) {
+		foreach ($this->statusEffects as $effect) {
+			if ($effect->type === $type) return true;
+	}
+	return false;
+	}
+
+	public function canAct() {
+		foreach ($this->statusEffects as $effect) {
+			if ($effect->type === 'stun' || $effect->type === 'paralyze') return false;
+		}
+		return true;
 	}
 }

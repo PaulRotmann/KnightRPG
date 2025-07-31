@@ -2,6 +2,34 @@
 
 namespace App\View;
 
+function renderStatusEffects($target) {
+	if (empty($target->statusEffects)) return '';
+	$icons = [
+			'burn' => '🔥',
+			'bleed' => '💧',
+			'paralyze' => '⚡',
+			'stun' => '💫'
+	];
+	$labels = [
+			'burn' => 'Brennen',
+			'bleed' => 'Bluten',
+			'paralyze' => 'Lähmung',
+			'stun' => 'Betäubung'
+	];
+	$html = '<div class="status-effects" style="margin-top:5px;font-size:1.1em;">';
+	foreach ($target->statusEffects as $effect) {
+		$icon = isset($icons[$effect->type]) ? $icons[$effect->type] : '';
+		$label = isset($labels[$effect->type]) ? $labels[$effect->type] : ucfirst($effect->type);
+		$desc = $label . ' (' . $effect->duration . ' Rnd' . ($effect->duration > 1 ? 'n' : '') . ')';
+		if (isset($effect->strength) && ($effect->type === 'burn' || $effect->type === 'bleed')) {
+			$desc .= ' <span style="color:#d32f2f;">-' . $effect->strength . ' HP/Rd.</span>';
+		}
+		$html .= '<span style="margin-right:9px;" title="'. htmlspecialchars($desc) .'">'.$icon.' <span style="font-size:0.93em;">'.$desc.'</span></span>';
+	}
+	$html .= '</div>';
+	return $html;
+}
+
 function renderEquipment($player) {
 	if ($player === null) { return ''; }
 
@@ -216,51 +244,112 @@ function renderAvatar($type, $name, $hp, $maxHp, $energy = null, $maxEnergy = nu
 
 function renderCombat($game) {
 	$enemy = $game->currentEnemy;
+	$player = $game->player;
 
-	$html = '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;margin-bottom:20px;">'
-			. renderAvatar('player', $game->player->playerClass, $game->player->hp, $game->player->maxHp, $game->player->energy, $game->player->maxEnergy, $game->lastEnemyDmg)
-			. renderAvatar('enemy', $enemy->name, $enemy->hp, $enemy->maxHp, null, null, $game->lastPlayerDmg)
-			. '</div>';
+	// Avatare & Status-Balken nebeneinander von links (Spieler) nach rechts (Gegner)
+	$html = '
+    <div style="
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 18px;
+        min-width: 490px;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+    ">
 
-			$html .= '<div class="enemy-stats" style="text-align:center;margin-bottom:10px;">
-    		<strong>Monster: ' . $enemy->name . '</strong> |
-    		<strong>Ausweichen:</strong> ' . $enemy->dodgeChance . '% |
-    		<strong>Parieren:</strong> ' . $enemy->blockChance . '%</div>';
+<div style="display: flex; flex-direction: column; align-items: center; min-width:120px;">
+    ' . renderAvatar('player', $player->playerClass, $player->hp, $player->maxHp, $player->energy, $player->maxEnergy, $game->lastEnemyDmg) . '
+    ' . renderStatusEffects($player) . '
+    ' . renderPlayerStatsCompact($player) . '
+</div>
 
-			$html .= '<div class="combat-log">';
-			foreach ($game->combatLog as $log) {
-				$html .= '<div>' . $log . '</div>';
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; min-width:190px;">
+            <!-- Aktionsbar mittig (wächst mit Skillanzahl, immer in der Mitte zwischen den Bildern) -->
+            ';
+	if ($enemy->isAlive()) {
+		$html .= '<div class="actions-bar" style="
+                    margin-bottom: 18px;
+                    min-width: 220px;
+                    max-width: 350px;
+                    justify-content: center;
+                ">';
+		$html .= '<button onclick="gameAction(\'attack\')">Angreifen</button>';
+		foreach ($player->skills as $key => $skill) {
+			if ($player->level >= $skill['unlockLevel']) {
+				$disabled = $player->energy < $skill['energyCost'];
+				$buttonStyle = $disabled
+				? 'opacity:0.55;cursor:not-allowed;background:#bfa5e3;'
+						: 'background:#673ab7;';
+						$html .= '<button '
+								. ' onclick="' . (!$disabled ? "gameAction('use_skill', {skillKey: '$key'})" : '') . '"'
+										. ' style="' . $buttonStyle . '"'
+												. ' title="' . htmlspecialchars($skill['description'])
+												. ' (Kostet ' . $skill['energyCost'] . ' Energie)">'
+														. $skill['name'] . ' (' . $skill['energyCost'] . ' EP)'
+																. '</button>';
 			}
-			$html .= '</div>';
+		}
+		$html .= '</div>';
+	}
+	$html .= '
+        </div>
 
-			if ($enemy->isAlive()) {
-				$html .= '<div style="margin-bottom: 15px;">
-            <h3>Aktionen:</h3>
-            <button onclick="gameAction(\'attack\')" style="background-color: #4CAF50;">Angreifen</button>';
+        <div style="display: flex; flex-direction: column; align-items: center; min-width:120px;">
+            ' . renderAvatar('enemy', $enemy->name, $enemy->hp, $enemy->maxHp, null, null, $game->lastPlayerDmg) . '
+            ' . renderStatusEffects($enemy);
 
-				// Fertigkeiten-Buttons hinzufügen wenn verfügbar
-				foreach ($game->player->skills as $key => $skill) {
-					if ($game->player->level >= $skill['unlockLevel']) {
-						$disabled = $game->player->energy < $skill['energyCost'];
-						$buttonStyle = $disabled ?
-						'opacity: 0.5; cursor: not-allowed; background-color: #673AB7;' :
-						'background-color: #673AB7;';
+	// Monster-Parameter direkt UNTER das Monsterbild!
+	$html .= '
+            <div style="margin-top:7px; font-size:1.04em; background: #25292e; color:#fff; padding:7px 13px; border-radius: 7px; min-width:98px;">
+                <b>' . htmlspecialchars($enemy->name) . '</b><br>
+                HP: ' . $enemy->hp . ' / ' . $enemy->maxHp . '<br>
+                Schaden: ' . $enemy->damage . '<br>
+                Ausweichen: ' . $enemy->dodgeChance . '%<br>
+                Parieren: ' . $enemy->blockChance . '%
+            </div>
+        </div>
+    </div>
+    ';
 
-						$html .= '<button
-                    onclick="' . (!$disabled ? "gameAction('use_skill', {skillKey: '$key'})" : '') . '"
-                    style="' . $buttonStyle . '"
-                    title="' . $skill['description'] . ' (Kostet ' . $skill['energyCost'] . ' Energie)">' .
-                    $skill['name'] . ' (' . $skill['energyCost'] . ' EP)
-                </button>';
-					}
-				}
+	// Kampfprotokoll – volle Breite (von ganz links bis ganz rechts der Avatare), Höhe ausreichend!
+	$html .= '<div class="combat-log" style="
+        min-height:110px;
+        max-width: 700px;
+        margin: 0 auto 0 auto;
+        border-radius: 10px;
+        box-sizing: border-box;
+        font-size:1.04em;
+    ">';
+	$combatEntries = array_slice(array_reverse($game->combatLog), 0, 20);
+	foreach ($combatEntries as $log) {
+		$css = 'combat-entry combat-info';
+		if (preg_match('/greifst den|machst \d+ Schaden|Schaden zu!/iu', $log))
+			$css = 'combat-entry combat-dmg';
+			elseif (preg_match('/erhält.*EXP|Gold|regenerierst|Level Up|vollständig geheilt/ui', $log))
+			$css = 'combat-entry combat-good';
+			elseif (preg_match('/ist betäubt|ist gelähmt|Statuseffekt|brennen|blutet|Feuerschaden/ui', $log))
+			$css = 'combat-entry combat-status';
+			elseif (preg_match('/weicht|parierst|pariert|weichen/ui', $log))
+			$css = 'combat-entry combat-block';
+			elseif (preg_match('/besiegt|gestorben|verloren|GAME OVER/ui', $log))
+			$css = 'combat-entry combat-special';
+			elseif (preg_match('/Gegner|Monster/ui', $log))
+			$css = 'combat-entry combat-enemy';
 
-				$html .= '</div>';
-			}
+			$html .= '<div class="'.$css.'">' . htmlspecialchars($log) . '</div>';
+	}
+	$html .= '</div>';
 
-			$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button>';
+	// Zurück-Button (wie gehabt)
+	$html .= '<div style="text-align:center;margin-top:13px;">
+        <button onclick="gameAction(\'home\')" style="background: #aaa;">Zurück zur Hauptseite</button>
+    </div>';
 
-			return $html;
+	return $html;
 }
 
 function renderShop($game) {
@@ -361,35 +450,60 @@ function renderGame($game) {
 <head>
     <meta charset="UTF-8">
     <title>RPG Browsergame</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-        .player-stats { background: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .combat-log { background: #f8f8f8; padding: 10px; border-radius: 5px; height: 150px; overflow-y: auto; margin: 10px 0; }
-        .enemy-stats { background: #f8e8e8; padding: 15px; border-radius: 5px; margin: 10px 0; }
-        .shop-item { background: #f0f8f0; padding: 10px; margin: 5px 0; border-radius: 5px; }
-        .equipment { background: #fff8e8; padding: 10px; border-radius: 5px; margin: 10px 0; }
-        button { padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .danger { background: #f44336; }
-        .danger:hover { background: #da190b; }
-        .avatar-player, .avatar-enemy { margin: 5px 15px; }
-        .hp-bar, .energy-bar { box-shadow: 0 0 5px #0002; }
-        .damage-number {
-            animation: damage-float 1.2s forwards;
-            pointer-events: none;
-        }
-        @keyframes damage-float {
-            0% {
-                opacity:1; transform:translateY(0) scale(1.1);
-                text-shadow:1px 2px 6px #ca2;
-            }
-            70% { opacity:0.95;}
-            100% {
-                opacity:0; transform:translateY(-32px) scale(1.25);
-            }
-        }
-    </style>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+
+.combat-log {
+    background: #181818; color: #fff;
+    padding: 12px 10px; border-radius: 8px;
+    /* Höhe kann je nach UI zwischen 180px bis 320px angepasst werden – wähle mindestens: */
+    min-height: 120px;
+    max-height: 320px;
+    overflow-y: auto;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: Courier New, Courier, Lucida Console, Monaco, monospace;
+    margin-top: 18px;
+}
+    .combat-entry {
+        margin-bottom: 3px; padding: 0 3px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    .combat-dmg { background: #36110d; color: #ff7367; font-weight: bold;}
+    .combat-info { background: #234; color: #9cf; }
+    .combat-good { background: #113b1c; color: #18ff6e; font-weight: bold;}
+    .combat-status { background: #3c2e25; color: #ffc03d;}
+    .combat-enemy { background: #2c1e27; color: #d7a8ff; }
+    .combat-block { background: #2c3322; color: #eaff75;}
+    .combat-special { background: #022; color: #fcdcff; font-style: italic}
+
+.actions-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    background: #e6eaf7;
+    border-radius: 7px;
+    box-shadow: 0 1px 8px #3342;
+    padding: 9px 12px 11px 12px;
+    min-width: 220px;
+    max-width: 350px;
+}
+
+.actions-bar button {
+    font-size: 1.07em;
+    padding: 9px 22px;
+    border-radius: 6px;
+    margin: 2px 0;
+    min-width: 116px;
+    transition: background 0.15s, box-shadow .15s;
+    box-shadow: 0 2px 6px #1111;
+    white-space:nowrap;
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -397,25 +511,57 @@ function renderGame($game) {
         ' . renderPlayerStats($game->player) . '
         ' . renderEquipment($game->player) . '
         ' . renderGameContent($game) . '
+        ' . renderStatusEffects($game->player) . '
     </div>
+</body>
+</html>';
 
+	$html .= '
     <script>
-        async function gameAction(action, data = {}) {
-            const response = await fetch("/action", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action, ...data })
-            });
-            const result = await response.json();
-            if (result.success) {
-                document.body.innerHTML = result.html;
-            }
-        }
+async function gameAction(action, data = {}) {
+    console.log("gameAction aufgerufen mit:", action, data);  // Debug-Ausgabe
+    const response = await fetch("/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...data })
+    });
+    const result = await response.json();
+    console.log("Antwort vom Server:", result);  // Debug-Ausgabe
+    if (result.success) {
+        document.body.innerHTML = result.html;
+    } else {
+        alert("Fehler: " + (result.message || "Unbekannter Fehler"));
+    }
+}
+
+        setTimeout(function(){
+            let log = document.querySelector(".combat-log");
+            if(log) log.scrollTop = log.scrollHeight;
+        }, 70);
     </script>
 </body>
 </html>';
 
 	return $html;
+}
+
+function renderPlayerStatsCompact($player) {
+	if (!$player) return '';
+	$dodge = $player->dodgeChance + ($player->getEquipmentDodgeBonus() ?? 0);
+	$block = $player->blockChance + ($player->getEquipmentBlockBonus() ?? 0);
+	$damage = $player->damage + $player->getEquipmentDamageBonus();
+	$defense = $player->defense + $player->getEquipmentDefenseBonus();
+
+	return '
+    <div style="margin-top:7px; font-size:1.04em; background: #25292e; color:#fff; padding:7px 13px; border-radius: 7px; min-width:98px;">
+        <b>' . htmlspecialchars($player->name) . ' (Lvl '.$player->level.')</b><br>
+        HP: ' . $player->hp . ' / ' . $player->maxHp . '<br>
+        Energie: ' . $player->energy . ' / ' . $player->maxEnergy . '<br>
+        Schaden: ' . $damage . '<br>
+        Verteidigung: ' . $defense . '<br>
+        Ausweichen: ' . $dodge . '%<br>
+        Parieren: ' . $block . '%
+    </div>';
 }
 
 function renderPlayerStats($player) {

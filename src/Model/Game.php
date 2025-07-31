@@ -4,6 +4,7 @@ namespace App\Model;
 
 use App\Model\Player;
 use App\Model\Enemy;
+use App\Model\StatusEffect;
 
 class Game {
 	public $player;
@@ -31,27 +32,24 @@ class Game {
 
 	public function getEnemyTypes() {
 		return [
-				'Wolf' => ['hp' => [25, 35], 'damage' => [4, 8], 'exp' => [10, 20], 'gold' => [3, 10], 'dodge' => 10, 'block' => 5],
-				'Goblin' => ['hp' => [35, 50], 'damage' => [5, 10], 'exp' => [15, 25], 'gold' => [5, 15], 'dodge' => 15, 'block' => 10],
-				'Skelett' => ['hp' => [50, 100], 'damage' => [8, 15], 'exp' => [20, 35], 'gold' => [8, 20], 'dodge' => 5, 'block' => 15],
-				'Zombie' => ['hp' => [100, 120], 'damage' => [10, 18], 'exp' => [18, 30], 'gold' => [10, 25] , 'dodge' => 5, 'block' => 10],
-				'Bandit' => ['hp' => [120, 150], 'damage' => [10, 20], 'exp' => [25, 45], 'gold' => [10, 30] , 'dodge' => 10, 'block' => 15],
-				'Mantis' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25], 'dodge' => 15, 'block' => 10],
-				'Hexe' => ['hp' => [180, 200], 'damage' => [12, 22], 'exp' => [35, 55], 'gold' => [12, 35] , 'dodge' => 10, 'block' => 20],
-				'Golem' => ['hp' => [200, 230], 'damage' => [15, 28], 'exp' => [40, 60], 'gold' => [18, 45], 'dodge' => 5, 'block' => 25],
-				'Geist' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50], 'dodge' => 20, 'block' => 15],
-				'Troll' => ['hp' => [250, 300], 'damage' => [20, 35], 'exp' => [60, 90], 'gold' => [30, 70], 'dodge' => 10, 'block' => 20],
-				'Medusa' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100] , 'dodge' => 15, 'block' => 25],
-				'Drache' => ['hp' => [500, 1000], 'damage' => [50, 80], 'exp' => [100, 150], 'gold' => [70, 120] , 'dodge' => 20, 'block' => 30],
+				'Wolf' => ['hp' => [25, 35], 'damage' => [4, 8], 'exp' => [10, 20], 'gold' => [3, 10], 'dodge' => 10, 'block' => 5, 'specialAttack' => ['type' => 'bleed', 'chance' => 25, 'duration' => 2]],
+				'Goblin' => ['hp' => [35, 50], 'damage' => [5, 10], 'exp' => [15, 25], 'gold' => [5, 15], 'dodge' => 15, 'block' => 10, 'specialAttack' => ['type' => 'bleed', 'chance' => 15, 'duration' => 2]],
+				'Skelett' => ['hp' => [50, 100], 'damage' => [8, 15], 'exp' => [20, 35], 'gold' => [8, 20], 'dodge' => 5, 'block' => 15, 'specialAttack' => ['type' => 'paralyze', 'chance' => 15, 'duration' => 1]],
+				'Zombie' => ['hp' => [100, 120], 'damage' => [10, 18], 'exp' => [18, 30], 'gold' => [10, 25] , 'dodge' => 5, 'block' => 10, 'specialAttack' => ['type' => 'stun', 'chance' => 10, 'duration' => 1]],
+				'Bandit' => ['hp' => [120, 150], 'damage' => [10, 20], 'exp' => [25, 45], 'gold' => [10, 30] , 'dodge' => 10, 'block' => 15, 'specialAttack' => ['type' => 'bleed', 'chance' => 20, 'duration' => 2]],
+				'Mantis' => ['hp' => [150, 180], 'damage' => [10, 18], 'exp' => [25, 40], 'gold' => [10, 25], 'dodge' => 15, 'block' => 10, 'specialAttack' => ['type' => 'bleed', 'chance' => 20, 'duration' => 2]],
+				'Hexe' => ['hp' => [180, 200], 'damage' => [12, 22], 'exp' => [35, 55], 'gold' => [12, 35] , 'dodge' => 10, 'block' => 20, 'specialAttack' => ['type' => 'burn', 'chance' => 15, 'duration' => 3]],
+				'Golem' => ['hp' => [200, 230], 'damage' => [15, 28], 'exp' => [40, 60], 'gold' => [18, 45], 'dodge' => 5, 'block' => 25, 'specialAttack' => ['type' => 'stun', 'chance' => 15, 'duration' => 2]],
+				'Geist' => ['hp' => [230, 250], 'damage' => [18, 30], 'exp' => [45, 70], 'gold' => [20, 50], 'dodge' => 20, 'block' => 15, 'specialAttack' => ['type' => 'paralyze', 'chance' => 15, 'duration' => 2]],
+				'Troll' => ['hp' => [250, 300], 'damage' => [20, 35], 'exp' => [60, 90], 'gold' => [30, 70], 'dodge' => 10, 'block' => 20, 'specialAttack' => ['type' => 'stun', 'chance' => 20, 'duration' => 2]],
+				'Medusa' => ['hp' => [300, 500], 'damage' => [30, 50], 'exp' => [80, 120], 'gold' => [50, 100] , 'dodge' => 15, 'block' => 25, 'specialAttack' => ['type' => 'paralyze', 'chance' => 20, 'duration' => 2]],
+				'Drache' => ['hp' => [500, 1000], 'damage' => [50, 80], 'exp' => [100, 150], 'gold' => [70, 120] , 'dodge' => 20, 'block' => 30, 'specialAttack' => ['type' => 'burn', 'chance' => 30, 'duration' => 3]]
 		];
 	}
 
 	public function spawnSelectedEnemy($enemyType) {
 		$enemyTypes = $this->getEnemyTypes();
-		if (!isset($enemyTypes[$enemyType])) {
-			return false;
-		}
-
+		if (!isset($enemyTypes[$enemyType])) return false;
 		$stats = $enemyTypes[$enemyType];
 		$hp = rand($stats['hp'][0], $stats['hp'][1]);
 		$damage = rand($stats['damage'][0], $stats['damage'][1]);
@@ -59,8 +57,8 @@ class Game {
 		$gold = rand($stats['gold'][0], $stats['gold'][1]);
 		$dodge = $stats['dodge'] ?? 0;
 		$block = $stats['block'] ?? 0;
-
-		$this->currentEnemy = new Enemy($enemyType, $hp, $damage, $exp, $gold, $dodge, $block);
+		$special = $stats['specialAttack'] ?? null;
+		$this->currentEnemy = new Enemy($enemyType, $hp, $damage, $exp, $gold, $dodge, $block, $special);
 		$this->gameState = 'combat';
 		$this->combatLog = [];
 		$this->combatLog[] = "Du trittst gegen einen {$enemyType} an! (HP: {$hp}, Schaden: {$damage})";
@@ -69,7 +67,27 @@ class Game {
 
 	public function playerAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
-			// ... Vor Schaden ...
+			$blocked = $this->player->processStatusEffects($this->combatLog);
+			$this->currentEnemy->processStatusEffects($this->combatLog);
+
+			if (!$this->currentEnemy->isAlive()) {
+				$this->endCombat();
+				return;
+			}
+			if ($blocked) {
+				// Spieler ist z.B. betäubt oder gelähmt und kann sofort NICHT angreifen
+				return;
+			}
+			if (!$this->currentEnemy->canAct()) {
+				$this->combatLog[] = "Der {$this->currentEnemy->name} ist bewegungsunfähig und kann nicht angreifen!";
+				return;
+			}
+
+			// Then handle special attack
+			if ($this->currentEnemy->specialAttack && rand(1,100) <= $this->currentEnemy->specialAttack['chance']) {
+				// Special attack logic...
+			}
+
 			$dodgeRoll = rand(1, 100);
 			if ($this->currentEnemy->dodgeChance > 0 && $dodgeRoll <= $this->currentEnemy->dodgeChance) {
 				$this->combatLog[] = "Der {$this->currentEnemy->name} weicht deinem Angriff aus!";
@@ -95,10 +113,27 @@ class Game {
 				return;
 			}
 
-			// Nur falls nicht gedodged/geblockt:
+			// Status-Effekte tracken VORHER:
+			$existingEffects = [];
+			foreach($this->currentEnemy->statusEffects as $se) $existingEffects[] = $se->type;
+
+			// Angriff ausführen:
 			$damage = $this->player->attack($this->currentEnemy);
 			$this->lastPlayerDmg = $damage;
 			$this->combatLog[] = "Du greifst den {$this->currentEnemy->name} an und machst {$damage} Schaden!";
+
+			// NACH dem Angriff: Prüfe auf neue Effekte
+			foreach ($this->currentEnemy->statusEffects as $effect) {
+				if (!in_array($effect->type, $existingEffects)) {
+					$effectName = [
+							'burn' => "brennt",
+							'bleed' => "blutet",
+							'stun' => "ist betäubt",
+							'paralyze' => "ist gelähmt"
+					][$effect->type] ?? $effect->type;
+					$this->combatLog[] = "Der {$this->currentEnemy->name} {$effectName} für {$effect->duration} Runde(n)!";
+				}
+			}
 
 			if (!$this->currentEnemy->isAlive()) {
 				$this->endCombat();
@@ -114,54 +149,79 @@ class Game {
 
 	public function useSkill($skillKey) {
 		if (!$this->currentEnemy || !$this->currentEnemy->isAlive()) {
-			return;
+			return false;
+		}
+
+		$blocked = $this->player->processStatusEffects($this->combatLog);
+		$this->currentEnemy->processStatusEffects($this->combatLog);
+
+		if (!$this->currentEnemy->isAlive()) {
+			$this->endCombat();
+			return false;
+		}
+		if ($blocked) {
+			return false;
 		}
 
 		$result = $this->player->useSkill($skillKey, $this->currentEnemy);
 
 		if (!$result['success']) {
 			$this->combatLog[] = $result['message'];
-			return;
+			return false;
 		}
 
-		// Check if enemy can dodge the skill attack
+		// --- WICHTIG: Nach Skill-Erfolg erst hier Ausweichen und Block prüfen ---
+
 		$dodgeRoll = rand(1, 100);
 		if ($this->currentEnemy->dodgeChance > 0 && $dodgeRoll <= $this->currentEnemy->dodgeChance) {
 			$this->combatLog[] = "Der {$this->currentEnemy->name} weicht deinem {$result['skillName']} aus!";
 			$this->lastPlayerDmg = 0;
-			// Enemy attacks after the dodge
+
 			$this->enemyAttack();
 
-			// Regenerate some energy after turn
+			// Energie regenerieren
 			$regenAmount = $this->player->regenerateEnergy();
 			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
 			return;
 		}
 
-		// Check if enemy can block the skill attack
 		$blockRoll = rand(1, 100);
 		if ($this->currentEnemy->blockChance > 0 && $blockRoll <= $this->currentEnemy->blockChance) {
 			$this->combatLog[] = "Der {$this->currentEnemy->name} pariert dein {$result['skillName']}!";
 			$this->lastPlayerDmg = 0;
+
 			$this->enemyAttack();
 
-			// Regenerate some energy after turn
 			$regenAmount = $this->player->regenerateEnergy();
 			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
 			return;
 		}
 
-		// If no dodge or block, apply skill damage
-		$this->lastPlayerDmg = $result['damage']; // Store player damage
-		$this->combatLog[] = "Du setzt " . $result['skillName'] . " ein und fügst " . $result['damage'] . " Schaden zu!";
+		// Nur jetzt Schaden anwenden
+		$damage = $result['damage'];
+		$this->lastPlayerDmg = $damage;
+		$this->combatLog[] = "Du setzt " . $result['skillName'] . " ein und fügst " . $damage . " Schaden zu!";
+
+		// Status-Effekte (falls neu)
+		$existingEffects = [];
+		foreach($this->currentEnemy->statusEffects as $se) $existingEffects[] = $se->type;
+		foreach ($this->currentEnemy->statusEffects as $effect) {
+			if (!in_array($effect->type, $existingEffects)) {
+				$effectName = [
+						'burn' => "brennt",
+						'bleed' => "blutet",
+						'stun' => "ist betäubt",
+						'paralyze' => "ist gelähmt"
+				][$effect->type] ?? $effect->type;
+				$this->combatLog[] = "Der {$this->currentEnemy->name} {$effectName} für {$effect->duration} Runde(n)!";
+			}
+		}
 
 		if (!$this->currentEnemy->isAlive()) {
 			$this->endCombat();
 		} else {
-			// Enemy counter-attacks
 			$this->enemyAttack();
 
-			// Regenerate some energy after turn
 			$regenAmount = $this->player->regenerateEnergy();
 			$this->combatLog[] = "Du regenerierst " . $regenAmount . " Energiepunkte.";
 		}
@@ -169,40 +229,97 @@ class Game {
 
 	public function enemyAttack() {
 		if ($this->currentEnemy && $this->currentEnemy->isAlive()) {
-			// Ausweichen
+			$blocked = false;
+			// Optional: Falls Enemy eigene Stun-Effekte o.Ä. prozessieren und abbruchbar machen soll
+			if (method_exists($this->currentEnemy, 'processStatusEffects')) {
+				$blocked = $this->currentEnemy->processStatusEffects($this->combatLog);
+			}
+
+			if (!$this->currentEnemy->isAlive()) {
+				$this->endCombat();
+				return;
+			}
+			if ($blocked) {
+				// Gegner kann diese Runde nicht angreifen
+				return;
+			}
+			// 1) Ausweichen prüfen (Spieler)
 			$dodgeRoll = rand(1, 100);
 			$dodgeChance = $this->player->dodgeChance;
 			if (method_exists($this->player, 'getEquipmentDodgeBonus')) {
 				$dodgeChance += $this->player->getEquipmentDodgeBonus();
 			}
-			if ($dodgeChance > 0 && $dodgeRoll <= $dodgeChance){
+			if ($dodgeChance > 0 && $dodgeRoll <= $dodgeChance) {
 				$this->combatLog[] = "Du weichst dem Angriff des {$this->currentEnemy->name} aus!";
 				$this->lastEnemyDmg = 0;
 				return;
 			}
 
-			// Parieren
+			// 2) Parieren prüfen (Spieler)
+			$blockRoll = rand(1, 100);
 			$blockChance = $this->player->blockChance;
 			if (method_exists($this->player, 'getEquipmentBlockBonus')) {
 				$blockChance += $this->player->getEquipmentBlockBonus();
 			}
-			$blockRoll = rand(1, 100);
 			if ($blockChance > 0 && $blockRoll <= $blockChance) {
 				$this->combatLog[] = "Du parierst den Angriff des {$this->currentEnemy->name}!";
 				$this->lastEnemyDmg = 0;
 				return;
 			}
 
-			// Schaden
-			$damage = $this->currentEnemy->attack($this->player);
-			$this->lastEnemyDmg = $damage;
-			$this->combatLog[] = "Der {$this->currentEnemy->name} greift dich an und macht {$damage} Schaden!";
-
-			if ($this->player->hp <= 0) {
-				$this->combatLog[] = "Du bist gestorben!";
-				$this->gameState = 'gameover';
-				$this->currentEnemy = null;
+			// 3) Status: bewegungsunfähig prüfen (Spieler)
+			if ($this->player->hasStatus('stun') || $this->player->hasStatus('paralyze')) {
+				$this->combatLog[] = "Du bist bewegungsunfähig!";
+				return;
 			}
+
+			// 4) Gegner bewegungsunfähig? (z.B. durch Status)
+			if (!$this->currentEnemy->canAct()) {
+				$this->combatLog[] = "Der {$this->currentEnemy->name} ist bewegungsunfähig und kann nicht angreifen!";
+				return;
+			}
+
+			// 5) Spezialangriff mit Statuseffekt (Gegner verursacht Status-Effekt beim Spieler)
+			if (
+					$this->currentEnemy->specialAttack &&
+					rand(1,100) <= $this->currentEnemy->specialAttack['chance'] &&
+					!$this->player->hasStatus($this->currentEnemy->specialAttack['type'])
+					) {
+						$type = $this->currentEnemy->specialAttack['type'];
+						$duration = $this->currentEnemy->specialAttack['duration'];
+						$strength = 0;
+						if ($type === 'burn' || $type === 'bleed') {
+							$strength = round($this->currentEnemy->damage * 0.5);
+						}
+						$this->player->addStatusEffect(new StatusEffect($type, $duration, $strength));
+
+						$names = [
+								'burn' => 'Verbrennung', 'bleed' => 'Blutung',
+								'paralyze' => 'Lähmung', 'stun' => 'Betäubung'
+						];
+						$niceStatus = $names[$type] ?? $type;
+						$this->combatLog[] = "{$currentEnemy} Führt einen Spezialangriffaus: Du erhältst den Statuseffekt: {$niceStatus} ({$duration} Runde".($duration > 1 ? "n" : "").")!";
+					}
+
+					// 6) Schaden berechnen und anwenden
+					$damage = $this->currentEnemy->attack($this->player);
+					$this->lastEnemyDmg = $damage;
+
+					// 7) Loggen, wieviel Schaden tatsächlich verursacht wurde
+					if ($damage > 0) {
+						$this->combatLog[] = "Der {$this->currentEnemy->name} greift dich an und macht {$damage} Schaden!";
+					} else {
+						// Falls kein Schaden (z.B. komplett geblockt / reduziert auf 0)
+						// der Spieler hat aber nicht ausgewichen oder pariert (die haben vorher return gemacht).
+						$this->combatLog[] = "Der Angriff des {$this->currentEnemy->name} wurde komplett geblockt!";
+					}
+
+					// 8) Tod prüfen
+					if ($this->player->hp <= 0) {
+						$this->combatLog[] = "Du bist gestorben!";
+						$this->gameState = 'gameover';
+						$this->currentEnemy = null;
+					}
 		}
 	}
 
@@ -322,5 +439,12 @@ class Game {
 		$this->combatLog = [];
 		$this->lastPlayerDmg = null;
 		$this->lastEnemyDmg = null;
+	}
+
+	private function processTurnStartEffects() {
+		$this->player->processStatusEffects($this->combatLog);
+		if ($this->currentEnemy) {
+			$this->currentEnemy->processStatusEffects($this->combatLog);
+		}
 	}
 }
