@@ -19,10 +19,26 @@ session_start([
 
 // Helper function to get or create game instance
 function getGameInstance() {
-    if (!isset($_SESSION['game']) || !($_SESSION['game'] instanceof Game)) {
-        $_SESSION['game'] = new Game();
-    }
-    return $_SESSION['game'];
+	if (!isset($_SESSION['game']) || !($_SESSION['game'] instanceof Game)) {
+		$_SESSION['game'] = new Game();
+	} else {
+		$player = $_SESSION['game']->player;
+		if ($player instanceof \App\Model\Player) {
+			foreach ($player->equipment as $slot => $item) {
+				if ($item !== null && !isset($item['name'])) {
+					if (count($item) === 1) {
+						$keys = array_keys($item);
+						$name = $keys[0];
+						$player->equipment[$slot] = $item[$name];
+						$player->equipment[$slot]['name'] = $name;
+					} else {
+						$player->equipment[$slot]['name'] = 'Unbekannt';
+					}
+				}
+			}
+		}
+	}
+	return $_SESSION['game'];
 }
 
 // Regenerate session ID occasionally to prevent fixation attacks

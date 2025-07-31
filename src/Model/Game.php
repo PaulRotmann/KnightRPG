@@ -420,13 +420,21 @@ class Game {
 	}
 
 	public function buyItem($slot, $itemName) {
+		$slot = strtolower(trim($slot));
+		$validSlots = ['helmet', 'armor', 'gloves', 'boots', 'weapon', 'ring', 'amulet'];
+
+		if (!in_array($slot, $validSlots)) {
+			return false;
+		}
+
 		$shopItems = $this->getShopItems();
+
 		if (isset($shopItems[$slot][$itemName])) {
 			$item = $shopItems[$slot][$itemName];
 			if ($this->player->gold >= $item['price']) {
 				$this->player->gold -= $item['price'];
-				$this->player->equipItem($item, $slot);
-				return true;
+				$item['name'] = $itemName;
+				return $this->player->equipItem($item, $slot);
 			}
 		}
 		return false;

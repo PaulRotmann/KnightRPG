@@ -83,7 +83,7 @@ class GameController
 					if (empty($slot) || empty($item)) {
 						return self::errorResponse('Ungültige Kaufparameter');
 					}
-					$success = $game->buyItem($slot, $item);
+					$success = $game->buyItem(strtolower(trim($slot)), $item);
 					if (!$success) {
 						$result['message'] = 'Konnte Item nicht kaufen';
 					}
