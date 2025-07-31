@@ -3,7 +3,7 @@
         'name' => 'paul/knight-rpg',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2d6e67cae28cebc9376bff7edc2ea1f9bb7f92d3',
+        'reference' => '505361384bb2aa447e70e0277731de5cb09773a3',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -49,7 +49,7 @@
         'paul/knight-rpg' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2d6e67cae28cebc9376bff7edc2ea1f9bb7f92d3',
+            'reference' => '505361384bb2aa447e70e0277731de5cb09773a3',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

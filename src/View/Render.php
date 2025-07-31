@@ -56,22 +56,28 @@ function renderEquipment($player) {
         <h3>Ausrüstung</h3>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">';
 
-	foreach ($player->equipment as $slot => $item) {
-		$icon = isset($slotIcons[$slot]) ? $slotIcons[$slot] : '';
-		$itemName = $item ? array_keys($item)[0] : 'Leer';
-		$stats = '';
-		if ($item) {
+	foreach ($slotNames as $slot => $label) {
+		$icon = $slotIcons[$slot] ?? '';
+		$item = $player->equipment[$slot];
+		if ($item === null) {
+			$displayName = $icon . ' <span style="opacity:0.5;">leer</span>';
+			$stats = '';
+		} else {
+			// Falls $item['name'] fehlt (Schutz gegen seltsame Strukturen), auf 'Unbekannt' setzen
+			$itemName = isset($item['name']) ? $item['name'] : 'Unbekannt';
+			$stats = '';
 			if (isset($item['damage'])) $stats .= ' (+' . $item['damage'] . ' Schaden)';
 			if (isset($item['defense'])) $stats .= ' (+' . $item['defense'] . ' Verteidigung)';
+			if (isset($item['block'])) $stats .= ' (Block: +' . $item['block'] . ')';
+			if (isset($item['dodge'])) $stats .= ' (Ausweichen: +' . $item['dodge'] . '%)';
+			$displayName = $icon . ' ' . htmlspecialchars($itemName);
 		}
-		$displayName = $item ? $icon . ' ' . $itemName : $icon . ' Leer';
-		$html .= '<div><strong>' . $slotNames[$slot] . ':</strong><br>' . $displayName . $stats . '</div>';
+		$html .= '<div><strong>' . $label . ':</strong><br>' . $displayName . $stats . '</div>';
 	}
 
 	$html .= '</div></div>';
 	return $html;
 }
-
 
 function renderClassSelection() {
 	$html = '<div>
@@ -140,7 +146,6 @@ function renderHome($game) {
 	'<button style="opacity: 0.5; cursor: not-allowed;">Heilen (' . $healCost . ' Gold) - ' .
 	($game->player->hp >= $game->player->maxHp ? 'Bereits vollständig geheilt' : 'Nicht genug Gold') . '</button>';
 
-	// Add energy restoration option
 	$energyCost = round($game->player->level * 5);
 	$canRestoreEnergy = $game->player->gold >= $energyCost && $game->player->energy < $game->player->maxEnergy;
 	$energyButton = $canRestoreEnergy ?
@@ -372,8 +377,9 @@ function renderShop($game) {
 			'ring' => '💍',
 			'amulet' => '📿'
 	];
+	$player = $game->player;
 
-	$html = '<div><h2>Shop</h2><p>Dein Gold: ' . $game->player->gold . '</p>';
+	$html = '<div><h2>Shop</h2><p>Dein Gold: ' . $player->gold . '</p>';
 
 	foreach ($shopItems as $slot => $items) {
 		$icon = $slotIcons[$slot] ?? '';
@@ -382,18 +388,39 @@ function renderShop($game) {
 			$stats = '';
 			if (isset($item['damage'])) $stats .= ' (+' . $item['damage'] . ' Schaden)';
 			if (isset($item['defense'])) $stats .= ' (+' . $item['defense'] . ' Verteidigung)';
-			$canBuy = $game->player->gold >= $item['price'];
+			if (isset($item['block'])) $stats .= ' (Block: +' . $item['block'] . ')';
+			if (isset($item['dodge'])) $stats .= ' (Ausweichen: +' . $item['dodge'] . '%)';
+
+			// Item inkl. Namen fürs Vergleichen
+			$itemWithName = $item + ['name' => $itemName];
+
+			$alreadyEquipped = isset($player->equipment[$slot]) &&
+			$player->equipment[$slot] &&
+			isset($player->equipment[$slot]['name']) &&
+			$player->equipment[$slot]['name'] === $itemName;
+
+			$isBetter = $player->isItemBetter($slot, $itemWithName);
+
+			$canBuy = ($player->gold >= $item['price']) && $isBetter && !$alreadyEquipped;
+
 			$buttonStyle = $canBuy ? '' : 'style="opacity: 0.5; cursor: not-allowed;"';
+
+			if ($alreadyEquipped) $buttonLabel = "Ausgerüstet";
+			else if (!$isBetter) $buttonLabel = "Nicht besser";
+			else $buttonLabel = "Kaufen";
+
+			// **WICHTIG**: Der Slot-Name wird in Kleinbuchstaben übergeben
 			$html .= '<div class="shop-item">'
 					. '<strong>' . $icon . ' ' . $itemName . '</strong> - ' . $item['price'] . ' Gold' . $stats .
-					'<button ' . $buttonStyle . ' onclick="' . ($canBuy ? 'gameAction(\'buy\', {slot: \'' . $slot . '\', item: \'' . $itemName . '\'})' : '') . '">Kaufen</button>
-            </div>';
+					'<button ' . $buttonStyle .
+					($canBuy ? ' onclick="gameAction(\'buy\', {slot: \'' . $slot . '\', item: \'' . $itemName . '\'})"' : '') .
+					'>' . $buttonLabel .
+					'</button></div>';
 		}
 	}
 	$html .= '<button onclick="gameAction(\'home\')">Zurück zur Hauptseite</button></div>';
 	return $html;
 }
-
 
 function renderGameOver($game) {
 	$html = '<div style="text-align: center; background: #ffebee; padding: 30px; border-radius: 10px; border: 2px solid #f44336;">

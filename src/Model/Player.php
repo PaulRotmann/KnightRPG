@@ -413,12 +413,21 @@ class Player {
 	}
 
 	public function equipItem($item, $slot) {
-		// Validate slot exists
-		if (!isset($this->equipment[$slot])) {
+		if (!array_key_exists($slot, $this->equipment)) {
 			return false;
 		}
 
-		// Could add more validation here (item type matches slot, etc.)
+		if (!isset($item['name'])) {
+			if (count($item) === 1) {
+				$keys = array_keys($item);
+				$name = $keys[0];
+				$item = $item[$name];
+				$item['name'] = $name;
+			} else {
+				$item['name'] = 'Unbekannt';
+			}
+		}
+
 		$this->equipment[$slot] = $item;
 		return true;
 	}
@@ -435,5 +444,25 @@ class Player {
 			if ($effect->type === 'stun' || $effect->type === 'paralyze') return false;
 		}
 		return true;
+	}
+
+	public function isItemBetter($slot, $shopItem) {
+		// ShopItem benötigt den Namen, falls noch nicht vorhanden
+		if (!isset($shopItem['name'])) return true;
+
+		$current = $this->equipment[$slot] ?? null;
+		if (!$current) return true; // Kein Item? Immer besser.
+
+		// Wenn aktuelles Item exakt gleich (Name):
+		if (isset($current['name']) && $current['name'] === $shopItem['name']) return false;
+
+		// "Item-Wert" definieren anhand typischer Item-Stats
+		$keys = ['damage','defense','block','dodge'];
+		$shopValue = 0; $currentValue = 0;
+		foreach($keys as $k) {
+			$shopValue   += $shopItem[$k] ?? 0;
+			$currentValue+= $current[$k] ?? 0;
+		}
+		return $shopValue > $currentValue;
 	}
 }
